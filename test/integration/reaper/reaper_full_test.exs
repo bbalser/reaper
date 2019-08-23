@@ -233,9 +233,8 @@ defmodule Reaper.FullTest do
 
       eventually(
         fn ->
-          Logger.warn("Waiting for expected messages")
           results = TestUtils.get_data_messages_from_kafka(topic, @endpoints)
-
+          Logger.warn(inspect(results))
           assert [%{payload: %{"name" => "Austin"}} | _] = results
           assert false == File.exists?(dataset_id)
         end,
@@ -322,6 +321,7 @@ defmodule Reaper.FullTest do
 
     @tag timeout: 120_000
     test "cadence of once is only processed once", %{bypass: bypass} do
+      Logger.warn("starting once")
       dataset_id = "only-once"
       topic = "#{@output_topic_prefix}-#{dataset_id}"
 
@@ -337,13 +337,16 @@ defmodule Reaper.FullTest do
           }
         })
 
+        Logger.warn("Sending Brook")
       Brook.Event.send(dataset_update(), :reaper, csv_dataset)
+      Logger.warn("Elsa Topic")
       Elsa.create_topic(@endpoints, topic)
-
+      Logger.warn("Eventually")
       eventually(
         fn ->
           results = TestUtils.get_data_messages_from_kafka(topic, @endpoints)
-
+          Logger.warn("Once Results")
+          Logger.warn(inspect(results))
           assert [%{payload: %{"name" => "Austin"}} | _] = results
         end,
         1000,
