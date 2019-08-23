@@ -38,6 +38,8 @@ defmodule Reaper.DataFeedSchedulerTest do
     test "reaper config updates replace old state" do
       allow(Redix.command!(any(), any()), return: ~s({"timestamp": "2019-03-21 17:12:51.585273Z"}))
       allow Elsa.topic?(any(), any()), return: true
+      allow Reaper.DataFeed.process(any(), any()), return: :ok
+
       expect Elsa.Producer.Supervisor.start_link(any()), return: {:ok, :pid}
 
       {:ok, pid} = DataFeedScheduler.start_link(@data_feed_args)
@@ -45,19 +47,20 @@ defmodule Reaper.DataFeedSchedulerTest do
       reaper_config_update =
         FixtureHelper.new_reaper_config(%{
           dataset_id: @dataset_id,
-          sourceUrl: "persisted",
-          sourceFormat: "Success"
+          sourceUrl: "http://persisted",
+          sourceFormat: "Success",
+          cadence: 5_000_000
         })
 
       expected_reaper_config =
         FixtureHelper.new_reaper_config(%{
           dataset_id: @dataset_id,
-          sourceUrl: "persisted",
-          sourceFormat: "Success"
+          sourceUrl: "http://persisted",
+          sourceFormat: "Success",
+          cadence: 5_000_000
         })
 
       DataFeedScheduler.update(pid, reaper_config_update)
-
       # Force the handle cast to block inside this test
       assert expected_reaper_config == DataFeedScheduler.get(pid).reaper_config
     end
