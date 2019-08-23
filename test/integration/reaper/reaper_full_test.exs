@@ -91,66 +91,66 @@ defmodule Reaper.FullTest do
     end
   end
 
-  # describe "partial-existing dataset" do
-  #   setup %{bypass: bypass} do
-  #     Redix.command(:redix, ["FLUSHALL"])
-  #     {:ok, pid} = Agent.start_link(fn -> %{has_raised: false, invocations: 0} end)
+  describe "partial-existing dataset" do
+    setup %{bypass: bypass} do
+      Redix.command(:redix, ["FLUSHALL"])
+      {:ok, pid} = Agent.start_link(fn -> %{has_raised: false, invocations: 0} end)
 
-  #     allow Elsa.Producer.produce_sync(any(), any(), any()),
-  #       meck_options: [:passthrough],
-  #       exec: fn topic, messages, options ->
-  #         case Agent.get(pid, fn s -> {s.has_raised, s.invocations} end) do
-  #           {false, count} when count >= 2 ->
-  #             Agent.update(pid, fn _ -> %{has_raised: true, invocations: count + 1} end)
-  #             raise "Bring this thing down!"
+      allow Elsa.Producer.produce_sync(any(), any(), any()),
+        meck_options: [:passthrough],
+        exec: fn topic, messages, options ->
+          case Agent.get(pid, fn s -> {s.has_raised, s.invocations} end) do
+            {false, count} when count >= 2 ->
+              Agent.update(pid, fn _ -> %{has_raised: true, invocations: count + 1} end)
+              raise "Bring this thing down!"
 
-  #           {_, count} ->
-  #             Agent.update(pid, fn s -> %{s | invocations: count + 1} end)
-  #             :meck.passthrough([topic, messages, options])
-  #         end
-  #       end
+            {_, count} ->
+              Agent.update(pid, fn s -> %{s | invocations: count + 1} end)
+              :meck.passthrough([topic, messages, options])
+          end
+        end
 
-  #     Bypass.stub(bypass, "GET", "/partial.csv", fn conn ->
-  #       data =
-  #         1..10_000
-  #         |> Enum.map(fn _ -> random_string(10) end)
-  #         |> Enum.join("\n")
+      Bypass.stub(bypass, "GET", "/partial.csv", fn conn ->
+        data =
+          1..10_000
+          |> Enum.map(fn _ -> random_string(10) end)
+          |> Enum.join("\n")
 
-  #       Plug.Conn.send_resp(conn, 200, data)
-  #     end)
+        Plug.Conn.send_resp(conn, 200, data)
+      end)
 
-  #     pre_existing_dataset =
-  #       TDG.create_dataset(%{
-  #         id: @partial_load_dataset_id,
-  #         technical: %{
-  #           cadence: "once",
-  #           sourceUrl: "http://localhost:#{bypass.port}/partial.csv",
-  #           sourceFormat: "csv",
-  #           sourceType: "ingest",
-  #           schema: [%{name: "name", type: "string"}]
-  #         }
-  #       })
+      pre_existing_dataset =
+        TDG.create_dataset(%{
+          id: @partial_load_dataset_id,
+          technical: %{
+            cadence: "once",
+            sourceUrl: "http://localhost:#{bypass.port}/partial.csv",
+            sourceFormat: "csv",
+            sourceType: "ingest",
+            schema: [%{name: "name", type: "string"}]
+          }
+        })
 
-  #     Brook.Event.send(dataset_update(), :reaper, pre_existing_dataset)
-  #     Elsa.create_topic(@endpoints, "#{@output_topic_prefix}-#{@partial_load_dataset_id}")
-  #     :ok
-  #   end
+      Brook.Event.send(dataset_update(), :reaper, pre_existing_dataset)
+      Elsa.create_topic(@endpoints, "#{@output_topic_prefix}-#{@partial_load_dataset_id}")
+      :ok
+    end
 
-  #   @tag timeout: 120_000
-  #   @tag capture_log: true
-  #   test "configures and ingests a csv datasource that was partially loaded before reaper restarted", %{bypass: _bypass} do
-  #     topic = "#{@output_topic_prefix}-#{@partial_load_dataset_id}"
+    @tag timeout: 120_000
+    @tag capture_log: true
+    test "configures and ingests a csv datasource that was partially loaded before reaper restarted", %{bypass: _bypass} do
+      topic = "#{@output_topic_prefix}-#{@partial_load_dataset_id}"
 
-  #     eventually(
-  #       fn ->
-  #         {:ok, latest_offset} = :brod.resolve_offset(@brod_endpoints, topic, 0)
-  #         assert latest_offset == 10_000
-  #       end,
-  #       2_000,
-  #       50
-  #     )
-  #   end
-  # end
+      eventually(
+        fn ->
+          {:ok, latest_offset} = :brod.resolve_offset(@brod_endpoints, topic, 0)
+          assert latest_offset == 10_000
+        end,
+        2_000,
+        50
+      )
+    end
+  end
 
   describe "No pre-existing datasets" do
     setup do
@@ -208,7 +208,8 @@ defmodule Reaper.FullTest do
 
     @tag timeout: 120_000
     test "configures and ingests a csv source", %{bypass: bypass} do
-      Logger.warn("starting test")
+      {type, result} = get("http://localhost:#{bypass.port}/#{@csv_file_name}")
+      Logger.warn("starting test #{inspect(type)}")
       dataset_id = "34567-8912"
       topic = "#{@output_topic_prefix}-#{dataset_id}"
 
@@ -321,9 +322,11 @@ defmodule Reaper.FullTest do
 
     @tag timeout: 120_000
     test "cadence of once is only processed once", %{bypass: bypass} do
-      Logger.warn("starting once")
       dataset_id = "only-once"
       topic = "#{@output_topic_prefix}-#{dataset_id}"
+
+      {type, result} = get("http://localhost:#{bypass.port}/#{@csv_file_name}")
+      Logger.warn("starting test #{inspect(type)}")
 
       csv_dataset =
         TDG.create_dataset(%{
@@ -337,16 +340,12 @@ defmodule Reaper.FullTest do
           }
         })
 
-      Logger.warn("Sending Brook")
       Brook.Event.send(dataset_update(), :reaper, csv_dataset)
-      Logger.warn("Elsa Topic")
       Elsa.create_topic(@endpoints, topic)
-      Logger.warn("Eventually")
 
       eventually(
         fn ->
           results = TestUtils.get_data_messages_from_kafka(topic, @endpoints)
-          Logger.warn("Once Results")
           Logger.warn(inspect(results))
           assert [%{payload: %{"name" => "Austin"}} | _] = results
         end,
