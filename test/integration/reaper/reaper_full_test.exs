@@ -234,7 +234,7 @@ defmodule Reaper.FullTest do
           assert false == File.exists?(dataset_id)
         end,
         1000,
-        40
+        60
       )
     end
 
@@ -314,6 +314,7 @@ defmodule Reaper.FullTest do
       :ok
     end
 
+    @tag timeout: 120_000
     test "cadence of once is only processed once", %{bypass: bypass} do
       dataset_id = "only-once"
       topic = "#{@output_topic_prefix}-#{dataset_id}"
