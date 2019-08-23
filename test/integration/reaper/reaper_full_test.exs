@@ -208,6 +208,7 @@ defmodule Reaper.FullTest do
 
     @tag timeout: 120_000
     test "configures and ingests a csv source", %{bypass: bypass} do
+      Logger.warn("starting test")
       dataset_id = "34567-8912"
       topic = "#{@output_topic_prefix}-#{dataset_id}"
 
@@ -223,11 +224,16 @@ defmodule Reaper.FullTest do
           }
         })
 
+      Logger.warn("Sending Brook")
       Brook.Event.send(dataset_update(), :reaper, csv_dataset)
+      Logger.warn("creating topic")
       Elsa.create_topic(@endpoints, topic)
+
+      Logger.warn("eventually start")
 
       eventually(
         fn ->
+          Logger.warn("Waiting for expected messages")
           results = TestUtils.get_data_messages_from_kafka(topic, @endpoints)
 
           assert [%{payload: %{"name" => "Austin"}} | _] = results
