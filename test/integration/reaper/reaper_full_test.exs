@@ -337,11 +337,12 @@ defmodule Reaper.FullTest do
           }
         })
 
-        Logger.warn("Sending Brook")
+      Logger.warn("Sending Brook")
       Brook.Event.send(dataset_update(), :reaper, csv_dataset)
       Logger.warn("Elsa Topic")
       Elsa.create_topic(@endpoints, topic)
       Logger.warn("Eventually")
+
       eventually(
         fn ->
           results = TestUtils.get_data_messages_from_kafka(topic, @endpoints)
@@ -350,7 +351,7 @@ defmodule Reaper.FullTest do
           assert [%{payload: %{"name" => "Austin"}} | _] = results
         end,
         1000,
-        40
+        60
       )
 
       eventually(fn ->
