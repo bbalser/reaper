@@ -34,3 +34,4 @@ outputs
 *.out
 
 charts/
+test/support/minio_data/
