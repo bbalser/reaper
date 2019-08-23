@@ -225,12 +225,16 @@ defmodule Reaper.FullTest do
       Brook.Event.send(dataset_update(), :reaper, csv_dataset)
       Elsa.create_topic(@endpoints, topic)
 
-      eventually(fn ->
-        results = TestUtils.get_data_messages_from_kafka(topic, @endpoints)
+      eventually(
+        fn ->
+          results = TestUtils.get_data_messages_from_kafka(topic, @endpoints)
 
-        assert [%{payload: %{"name" => "Austin"}} | _] = results
-        assert false == File.exists?(dataset_id)
-      end, 1000, 40)
+          assert [%{payload: %{"name" => "Austin"}} | _] = results
+          assert false == File.exists?(dataset_id)
+        end,
+        1000,
+        40
+      )
     end
 
     test "configures and ingests a hosted dataset", %{bypass: bypass} do
@@ -333,7 +337,9 @@ defmodule Reaper.FullTest do
           results = TestUtils.get_data_messages_from_kafka(topic, @endpoints)
 
           assert [%{payload: %{"name" => "Austin"}} | _] = results
-        end
+        end,
+        1000,
+        40
       )
 
       eventually(fn ->
