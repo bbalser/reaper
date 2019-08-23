@@ -230,7 +230,7 @@ defmodule Reaper.FullTest do
 
         assert [%{payload: %{"name" => "Austin"}} | _] = results
         assert false == File.exists?(dataset_id)
-      end)
+      end, 1000, 40)
     end
 
     test "configures and ingests a hosted dataset", %{bypass: bypass} do
@@ -328,11 +328,13 @@ defmodule Reaper.FullTest do
       Brook.Event.send(dataset_update(), :reaper, csv_dataset)
       Elsa.create_topic(@endpoints, topic)
 
-      eventually(fn ->
-        results = TestUtils.get_data_messages_from_kafka(topic, @endpoints)
+      eventually(
+        fn ->
+          results = TestUtils.get_data_messages_from_kafka(topic, @endpoints)
 
-        assert [%{payload: %{"name" => "Austin"}} | _] = results
-      end)
+          assert [%{payload: %{"name" => "Austin"}} | _] = results
+        end
+      )
 
       eventually(fn ->
         data_feed_status =
@@ -352,7 +354,7 @@ defmodule Reaper.FullTest do
         TDG.create_dataset(%{
           id: dataset_id,
           technical: %{
-            cadence: 1_000,
+            cadence: 50_000_000,
             sourceUrl: "http://localhost:#{bypass.port}/#{@nested_data_file_name}",
             sourceFormat: "json",
             schema: [
