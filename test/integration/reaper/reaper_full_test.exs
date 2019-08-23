@@ -136,6 +136,7 @@ defmodule Reaper.FullTest do
       :ok
     end
 
+    @tag timeout: 120_000
     @tag capture_log: true
     test "configures and ingests a csv datasource that was partially loaded before reaper restarted", %{bypass: _bypass} do
       topic = "#{@output_topic_prefix}-#{@partial_load_dataset_id}"
