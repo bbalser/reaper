@@ -13,7 +13,7 @@ endpoints = [{String.to_atom(host), 9092}]
 System.put_env("HOST", host)
 
 config :logger,
-  level: :info
+  level: :warn
 
 bucket_name = "hosted-dataset-files"
 

@@ -206,6 +206,7 @@ defmodule Reaper.FullTest do
       end)
     end
 
+    @tag timeout: 120_000
     test "configures and ingests a csv source", %{bypass: bypass} do
       dataset_id = "34567-8912"
       topic = "#{@output_topic_prefix}-#{dataset_id}"
@@ -352,6 +353,7 @@ defmodule Reaper.FullTest do
   end
 
   describe "Schema Stage" do
+    @tag timeout: 120_000
     test "fills nested nils", %{bypass: bypass} do
       dataset_id = "alzenband"
       topic = "#{@output_topic_prefix}-#{dataset_id}"
@@ -383,26 +385,30 @@ defmodule Reaper.FullTest do
       Brook.Event.send(dataset_update(), :reaper, json_dataset)
       Elsa.create_topic(@endpoints, topic)
 
-      eventually(fn ->
-        results = TestUtils.get_data_messages_from_kafka(topic, @endpoints)
+      eventually(
+        fn ->
+          results = TestUtils.get_data_messages_from_kafka(topic, @endpoints)
 
-        assert 3 == length(results)
+          assert 3 == length(results)
 
-        assert Enum.at(results, 0).payload == %{
-                 "id" => nil,
-                 "grandParent" => %{"parentMap" => %{"fieldA" => nil, "fieldB" => nil}}
-               }
+          assert Enum.at(results, 0).payload == %{
+                   "id" => nil,
+                   "grandParent" => %{"parentMap" => %{"fieldA" => nil, "fieldB" => nil}}
+                 }
 
-        assert Enum.at(results, 1).payload == %{
-                 "id" => "2",
-                 "grandParent" => %{"parentMap" => %{"fieldA" => "Bob", "fieldB" => "Purple"}}
-               }
+          assert Enum.at(results, 1).payload == %{
+                   "id" => "2",
+                   "grandParent" => %{"parentMap" => %{"fieldA" => "Bob", "fieldB" => "Purple"}}
+                 }
 
-        assert Enum.at(results, 2).payload == %{
-                 "id" => "3",
-                 "grandParent" => %{"parentMap" => %{"fieldA" => "Joe", "fieldB" => nil}}
-               }
-      end)
+          assert Enum.at(results, 2).payload == %{
+                   "id" => "3",
+                   "grandParent" => %{"parentMap" => %{"fieldA" => "Joe", "fieldB" => nil}}
+                 }
+        end,
+        1000,
+        40
+      )
     end
   end
 
