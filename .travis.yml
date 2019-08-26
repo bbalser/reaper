@@ -17,12 +17,12 @@ install:
   - mix local.hex --force
   - mix deps.get
 script:
-  - mix format --check-formatted
-  - mix credo
-  - mix hex.outdated || true
-  - mix test
+  # - mix format --check-formatted
+  # - mix credo
+  # - mix hex.outdated || true
+  # - mix test
   - mix test.integration
-  - docker build -t reaper:build .
+  # - docker build -t reaper:build .
 deploy:
   - provider: script
     skip_cleanup: true
