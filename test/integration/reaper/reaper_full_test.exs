@@ -74,7 +74,7 @@ defmodule Reaper.FullTest do
         last_one = List.last(results)
 
         assert expected == last_one
-      end)
+      end, 1000, 40)
     end
   end
 
@@ -170,7 +170,7 @@ defmodule Reaper.FullTest do
         results = TestUtils.get_data_messages_from_kafka(topic, @endpoints)
 
         assert [%{payload: %{"id" => "1004"}} | _] = results
-      end)
+      end, 1000, 40)
     end
 
     test "configures and ingests a json source" do
@@ -196,7 +196,7 @@ defmodule Reaper.FullTest do
         results = TestUtils.get_data_messages_from_kafka(topic, @endpoints)
 
         assert [%{payload: %{"vehicle_id" => 51_127}} | _] = results
-      end)
+      end, 1000, 40)
     end
 
     @tag timeout: 120_000
@@ -270,7 +270,7 @@ defmodule Reaper.FullTest do
 
         {:ok, _, messages} = Elsa.fetch(@endpoints, "event-stream", partition: 0)
         assert Enum.any?(messages, fn %Elsa.Message{key: key} -> key == "file:upload" end)
-      end)
+      end, 1000, 40)
     end
 
     test "saves last_success_time to redis" do
@@ -302,7 +302,7 @@ defmodule Reaper.FullTest do
           |> DateTime.from_iso8601()
 
         assert {:ok, date_time_from_redis, 0} = timestamp
-      end)
+      end, 1000, 40)
     end
   end
 
@@ -358,7 +358,7 @@ defmodule Reaper.FullTest do
           Horde.Registry.lookup({:via, Horde.Registry, {Reaper.Registry, String.to_atom(dataset_id <> "_feed")}})
 
         assert data_feed_status == :undefined
-      end)
+      end, 1000, 40)
     end
   end
 
@@ -441,7 +441,7 @@ defmodule Reaper.FullTest do
     eventually(fn ->
       {type, result} = get("http://localhost:#{bypass.port}/#{file_name}")
       type == :ok and result.status == 200
-    end)
+    end, 1000, 40)
 
     bypass
   end
