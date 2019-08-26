@@ -21,7 +21,7 @@ script:
   # - mix credo
   # - mix hex.outdated || true
   # - mix test
-  - mix test.integration
+  - mix test.integration --seed 521770
   # - docker build -t reaper:build .
 deploy:
   - provider: script

@@ -202,10 +202,6 @@ defmodule Reaper.FullTest do
     @tag timeout: 120_000
     test "configures and ingests a csv source" do
       bypass = open_bypass_file(@csv_file_name)
-
-      {type, result} = get("http://localhost:#{bypass.port}/#{@csv_file_name}")
-      Logger.warn("Got file: #{inspect(result)}")
-      Logger.warn("starting test #{inspect(type)}")
       dataset_id = "34567-8912"
       topic = "#{@output_topic_prefix}-#{dataset_id}"
 
@@ -221,12 +217,8 @@ defmodule Reaper.FullTest do
           }
         })
 
-      Logger.warn("Sending Brook")
       Brook.Event.send(dataset_update(), :reaper, csv_dataset)
-      Logger.warn("creating topic")
       Elsa.create_topic(@endpoints, topic)
-
-      Logger.warn("eventually start")
 
       eventually(
         fn ->
@@ -327,9 +319,6 @@ defmodule Reaper.FullTest do
 
       bypass = open_bypass_file(@csv_file_name)
 
-      {_type, result} = get("http://localhost:#{bypass.port}/#{@csv_file_name}")
-      Logger.warn("starting test #{inspect(result)}")
-
       csv_dataset =
         TDG.create_dataset(%{
           id: dataset_id,
@@ -346,14 +335,12 @@ defmodule Reaper.FullTest do
 
       eventually(
         fn ->
-          Logger.warn("Ensuring topic exists")
           assert true == Elsa.topic?(@endpoints, topic)
         end,
         1000,
         60
       )
 
-      Logger.warn("posting dataset event")
       Brook.Event.send(dataset_update(), :reaper, csv_dataset)
 
       eventually(
@@ -411,7 +398,6 @@ defmodule Reaper.FullTest do
 
       eventually(
         fn ->
-          Logger.warn("Ensuring topic exists")
           assert true == Elsa.topic?(@endpoints, topic)
         end,
         1000,

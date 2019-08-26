@@ -37,7 +37,7 @@ defmodule Reaper.YeetTest do
       TDG.create_dataset(%{
         id: @dataset_id,
         technical: %{
-          cadence: 1_000,
+          cadence: 100_000_000,
           sourceUrl: "http://localhost:#{bypass.port}/#{@invalid_json_file}",
           sourceFormat: "json"
         }
