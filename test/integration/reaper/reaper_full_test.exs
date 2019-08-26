@@ -37,7 +37,7 @@ defmodule Reaper.FullTest do
         TDG.create_dataset(%{
           id: @pre_existing_dataset_id,
           technical: %{
-            cadence: 1_000,
+            cadence: 100_000_000,
             sourceUrl: "http://localhost:#{bypass.port}/#{@json_file_name}",
             sourceFormat: "json",
             schema: [
@@ -157,7 +157,7 @@ defmodule Reaper.FullTest do
         TDG.create_dataset(%{
           id: dataset_id,
           technical: %{
-            cadence: 1_000,
+            cadence: 100_000_000,
             sourceUrl: "http://localhost:#{bypass.port}/#{@gtfs_file_name}",
             sourceFormat: "gtfs"
           }
@@ -183,7 +183,7 @@ defmodule Reaper.FullTest do
         TDG.create_dataset(%{
           id: dataset_id,
           technical: %{
-            cadence: 1_000,
+            cadence: 100_000_000,
             sourceUrl: "http://localhost:#{bypass.port}/#{@json_file_name}",
             sourceFormat: "json"
           }
@@ -213,7 +213,7 @@ defmodule Reaper.FullTest do
         TDG.create_dataset(%{
           id: dataset_id,
           technical: %{
-            cadence: 1_000,
+            cadence: 100_000_000,
             sourceUrl: "http://localhost:#{bypass.port}/#{@csv_file_name}",
             sourceFormat: "csv",
             sourceType: "ingest",
@@ -290,7 +290,7 @@ defmodule Reaper.FullTest do
         TDG.create_dataset(%{
           id: dataset_id,
           technical: %{
-            cadence: 1_000,
+            cadence: 100_000_000,
             sourceUrl: "http://localhost:#{bypass.port}/#{@gtfs_file_name}",
             sourceFormat: "gtfs"
           }
