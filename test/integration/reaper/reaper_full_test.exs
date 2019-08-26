@@ -24,27 +24,14 @@ defmodule Reaper.FullTest do
     Temp.track!()
     Application.put_env(:reaper, :download_dir, Temp.mkdir!())
 
-    # NOTE: using Bypass in setup all b/c we have no expectations.
-    # If we add any, we'll need to move this, per https://github.com/pspdfkit-labs/bypass#example
-    bypass = Bypass.open()
-
-    bypass
-    |> TestUtils.bypass_file(@gtfs_file_name)
-    |> TestUtils.bypass_file(@json_file_name)
-    |> TestUtils.bypass_file(@nested_data_file_name)
-    |> TestUtils.bypass_file(@csv_file_name)
-
-    eventually(fn ->
-      {type, result} = get("http://localhost:#{bypass.port}/#{@csv_file_name}")
-      type == :ok and result.status == 200
-    end)
-
-    {:ok, bypass: bypass}
+    :ok
   end
 
   describe "pre-existing dataset" do
-    setup %{bypass: bypass} do
+    setup do
       Redix.command(:redix, ["FLUSHALL"])
+      
+      bypass = open_bypass_file(@json_file_name)
 
       pre_existing_dataset =
         TDG.create_dataset(%{
@@ -92,7 +79,7 @@ defmodule Reaper.FullTest do
   end
 
   describe "partial-existing dataset" do
-    setup %{bypass: bypass} do
+    setup do
       Redix.command(:redix, ["FLUSHALL"])
       {:ok, pid} = Agent.start_link(fn -> %{has_raised: false, invocations: 0} end)
 
@@ -110,6 +97,16 @@ defmodule Reaper.FullTest do
           end
         end
 
+     
+      :ok
+    end
+
+    @tag timeout: 120_000
+    @tag capture_log: true
+    test "configures and ingests a csv datasource that was partially loaded before reaper restarted" do
+      topic = "#{@output_topic_prefix}-#{@partial_load_dataset_id}"
+      
+      bypass = Bypass.open()
       Bypass.stub(bypass, "GET", "/partial.csv", fn conn ->
         data =
           1..10_000
@@ -133,13 +130,6 @@ defmodule Reaper.FullTest do
 
       Brook.Event.send(dataset_update(), :reaper, pre_existing_dataset)
       Elsa.create_topic(@endpoints, "#{@output_topic_prefix}-#{@partial_load_dataset_id}")
-      :ok
-    end
-
-    @tag timeout: 120_000
-    @tag capture_log: true
-    test "configures and ingests a csv datasource that was partially loaded before reaper restarted", %{bypass: _bypass} do
-      topic = "#{@output_topic_prefix}-#{@partial_load_dataset_id}"
 
       eventually(
         fn ->
@@ -158,9 +148,10 @@ defmodule Reaper.FullTest do
       :ok
     end
 
-    test "configures and ingests a gtfs source", %{bypass: bypass} do
+    test "configures and ingests a gtfs source" do
       dataset_id = "12345-6789"
       topic = "#{@output_topic_prefix}-#{dataset_id}"
+      bypass = open_bypass_file(@gtfs_file_name)
 
       gtfs_dataset =
         TDG.create_dataset(%{
@@ -182,9 +173,11 @@ defmodule Reaper.FullTest do
       end)
     end
 
-    test "configures and ingests a json source", %{bypass: bypass} do
+    test "configures and ingests a json source" do
       dataset_id = "23456-7891"
       topic = "#{@output_topic_prefix}-#{dataset_id}"
+      
+      bypass = open_bypass_file(@json_file_name)
 
       json_dataset =
         TDG.create_dataset(%{
@@ -207,18 +200,9 @@ defmodule Reaper.FullTest do
     end
 
     @tag timeout: 120_000
-    test "configures and ingests a csv source", %{bypass: bypass} do
-      
-      bypass = Bypass.open()
+    test "configures and ingests a csv source" do
+      bypass = open_bypass_file(@csv_file_name)
 
-      bypass
-      |> TestUtils.bypass_file(@csv_file_name)
-  
-      eventually(fn ->
-        {type, result} = get("http://localhost:#{bypass.port}/#{@csv_file_name}")
-        type == :ok and result.status == 200
-      end)
-      
       {type, result} = get("http://localhost:#{bypass.port}/#{@csv_file_name}")
       Logger.warn("Got file: #{inspect(result)}")
       Logger.warn("starting test #{inspect(type)}")
@@ -229,7 +213,7 @@ defmodule Reaper.FullTest do
         TDG.create_dataset(%{
           id: dataset_id,
           technical: %{
-            cadence: "once",
+            cadence: 1_000,
             sourceUrl: "http://localhost:#{bypass.port}/#{@csv_file_name}",
             sourceFormat: "csv",
             sourceType: "ingest",
@@ -256,9 +240,11 @@ defmodule Reaper.FullTest do
       )
     end
 
-    test "configures and ingests a hosted dataset", %{bypass: bypass} do
+    test "configures and ingests a hosted dataset" do
       dataset_id = "1-22-333-4444"
 
+      bypass = open_bypass_file(@csv_file_name)
+      
       hosted_dataset =
         TDG.create_dataset(%{
           id: dataset_id,
@@ -289,15 +275,16 @@ defmodule Reaper.FullTest do
             Logger.info("File not uploaded yet")
             flunk("File should have been uploaded")
         end
-        
+
         {:ok, _, messages} = Elsa.fetch(@endpoints, "event-stream", partition: 0)
         assert Enum.any?(messages, fn %Elsa.Message{key: key} -> key == "file:upload" end)
       end)
-      
     end
 
-    test "saves last_success_time to redis", %{bypass: bypass} do
+    test "saves last_success_time to redis" do
       dataset_id = "12345-5555"
+      
+      bypass = open_bypass_file(@gtfs_file_name)
 
       gtfs_dataset =
         TDG.create_dataset(%{
@@ -334,9 +321,11 @@ defmodule Reaper.FullTest do
     end
 
     @tag timeout: 120_000
-    test "cadence of once is only processed once", %{bypass: bypass} do
+    test "cadence of once is only processed once" do
       dataset_id = "only-once"
       topic = "#{@output_topic_prefix}-#{dataset_id}"
+      
+      bypass = open_bypass_file(@csv_file_name)
 
       {type, result} = get("http://localhost:#{bypass.port}/#{@csv_file_name}")
       Logger.warn("starting test #{inspect(type)}")
@@ -377,9 +366,11 @@ defmodule Reaper.FullTest do
 
   describe "Schema Stage" do
     @tag timeout: 120_000
-    test "fills nested nils", %{bypass: bypass} do
+    test "fills nested nils" do
       dataset_id = "alzenband"
       topic = "#{@output_topic_prefix}-#{dataset_id}"
+      
+      bypass = open_bypass_file(@nested_data_file_name)
 
       json_dataset =
         TDG.create_dataset(%{
@@ -435,9 +426,17 @@ defmodule Reaper.FullTest do
     end
   end
   
-  defp bypass_file(file_name) do
-    
-  end
+  defp open_bypass_file(file_name) do
+    bypass = Bypass.open()
+
+      TestUtils.bypass_file(bypass, file_name)
+
+      eventually(fn ->
+        {type, result} = get("http://localhost:#{bypass.port}/#{file_name}")
+        type == :ok and result.status == 200
+      end)
+      bypass
+    end
 
   defp random_string(length) do
     :crypto.strong_rand_bytes(length)
