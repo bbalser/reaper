@@ -352,7 +352,7 @@ defmodule Reaper.FullTest do
         1000,
         60
       )
-      
+
       Logger.warn("posting dataset event")
       Brook.Event.send(dataset_update(), :reaper, csv_dataset)
 
@@ -407,8 +407,18 @@ defmodule Reaper.FullTest do
           }
         })
 
-      Brook.Event.send(dataset_update(), :reaper, json_dataset)
       Elsa.create_topic(@endpoints, topic)
+
+      eventually(
+        fn ->
+          Logger.warn("Ensuring topic exists")
+          assert true == Elsa.topic?(@endpoints, topic)
+        end,
+        1000,
+        60
+      )
+
+      Brook.Event.send(dataset_update(), :reaper, json_dataset)
 
       eventually(
         fn ->
