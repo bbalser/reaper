@@ -168,8 +168,17 @@ defmodule Reaper.FullTest do
           }
         })
 
-      Brook.Event.send(dataset_update(), :reaper, gtfs_dataset)
       Elsa.create_topic(@endpoints, topic)
+
+      eventually(
+        fn ->
+          assert true == Elsa.topic?(@endpoints, topic)
+        end,
+        1000,
+        60
+      )
+
+      Brook.Event.send(dataset_update(), :reaper, gtfs_dataset)
 
       eventually(
         fn ->
@@ -199,8 +208,17 @@ defmodule Reaper.FullTest do
           }
         })
 
-      Brook.Event.send(dataset_update(), :reaper, json_dataset)
       Elsa.create_topic(@endpoints, topic)
+
+      eventually(
+        fn ->
+          assert true == Elsa.topic?(@endpoints, topic)
+        end,
+        1000,
+        60
+      )
+
+      Brook.Event.send(dataset_update(), :reaper, json_dataset)
 
       eventually(
         fn ->
@@ -231,8 +249,17 @@ defmodule Reaper.FullTest do
           }
         })
 
-      Brook.Event.send(dataset_update(), :reaper, csv_dataset)
       Elsa.create_topic(@endpoints, topic)
+
+      eventually(
+        fn ->
+          assert true == Elsa.topic?(@endpoints, topic)
+        end,
+        1000,
+        60
+      )
+
+      Brook.Event.send(dataset_update(), :reaper, csv_dataset)
 
       eventually(
         fn ->
