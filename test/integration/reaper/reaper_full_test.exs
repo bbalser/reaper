@@ -30,7 +30,7 @@ defmodule Reaper.FullTest do
   describe "pre-existing dataset" do
     setup do
       Redix.command(:redix, ["FLUSHALL"])
-      
+
       bypass = open_bypass_file(@json_file_name)
 
       pre_existing_dataset =
@@ -97,7 +97,6 @@ defmodule Reaper.FullTest do
           end
         end
 
-     
       :ok
     end
 
@@ -105,8 +104,9 @@ defmodule Reaper.FullTest do
     @tag capture_log: true
     test "configures and ingests a csv datasource that was partially loaded before reaper restarted" do
       topic = "#{@output_topic_prefix}-#{@partial_load_dataset_id}"
-      
+
       bypass = Bypass.open()
+
       Bypass.stub(bypass, "GET", "/partial.csv", fn conn ->
         data =
           1..10_000
@@ -176,7 +176,7 @@ defmodule Reaper.FullTest do
     test "configures and ingests a json source" do
       dataset_id = "23456-7891"
       topic = "#{@output_topic_prefix}-#{dataset_id}"
-      
+
       bypass = open_bypass_file(@json_file_name)
 
       json_dataset =
@@ -244,7 +244,7 @@ defmodule Reaper.FullTest do
       dataset_id = "1-22-333-4444"
 
       bypass = open_bypass_file(@csv_file_name)
-      
+
       hosted_dataset =
         TDG.create_dataset(%{
           id: dataset_id,
@@ -283,7 +283,7 @@ defmodule Reaper.FullTest do
 
     test "saves last_success_time to redis" do
       dataset_id = "12345-5555"
-      
+
       bypass = open_bypass_file(@gtfs_file_name)
 
       gtfs_dataset =
@@ -324,11 +324,11 @@ defmodule Reaper.FullTest do
     test "cadence of once is only processed once" do
       dataset_id = "only-once"
       topic = "#{@output_topic_prefix}-#{dataset_id}"
-      
+
       bypass = open_bypass_file(@csv_file_name)
 
-      {type, result} = get("http://localhost:#{bypass.port}/#{@csv_file_name}")
-      Logger.warn("starting test #{inspect(type)}")
+      {_type, result} = get("http://localhost:#{bypass.port}/#{@csv_file_name}")
+      Logger.warn("starting test #{inspect(result)}")
 
       csv_dataset =
         TDG.create_dataset(%{
@@ -342,8 +342,19 @@ defmodule Reaper.FullTest do
           }
         })
 
-      Brook.Event.send(dataset_update(), :reaper, csv_dataset)
       Elsa.create_topic(@endpoints, topic)
+
+      eventually(
+        fn ->
+          Logger.warn("Ensuring topic exists")
+          assert true == Elsa.topic?(@endpoints, topic)
+        end,
+        1000,
+        60
+      )
+      
+      Logger.warn("posting dataset event")
+      Brook.Event.send(dataset_update(), :reaper, csv_dataset)
 
       eventually(
         fn ->
@@ -369,7 +380,7 @@ defmodule Reaper.FullTest do
     test "fills nested nils" do
       dataset_id = "alzenband"
       topic = "#{@output_topic_prefix}-#{dataset_id}"
-      
+
       bypass = open_bypass_file(@nested_data_file_name)
 
       json_dataset =
@@ -425,18 +436,19 @@ defmodule Reaper.FullTest do
       )
     end
   end
-  
+
   defp open_bypass_file(file_name) do
     bypass = Bypass.open()
 
-      TestUtils.bypass_file(bypass, file_name)
+    TestUtils.bypass_file(bypass, file_name)
 
-      eventually(fn ->
-        {type, result} = get("http://localhost:#{bypass.port}/#{file_name}")
-        type == :ok and result.status == 200
-      end)
-      bypass
-    end
+    eventually(fn ->
+      {type, result} = get("http://localhost:#{bypass.port}/#{file_name}")
+      type == :ok and result.status == 200
+    end)
+
+    bypass
+  end
 
   defp random_string(length) do
     :crypto.strong_rand_bytes(length)
