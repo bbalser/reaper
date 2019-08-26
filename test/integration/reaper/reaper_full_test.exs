@@ -55,6 +55,7 @@ defmodule Reaper.FullTest do
       :ok
     end
 
+    @tag timeout: 120_000
     test "configures and ingests a json-source that was added before reaper started" do
       expected =
         TestUtils.create_data(%{
@@ -69,12 +70,16 @@ defmodule Reaper.FullTest do
 
       topic = "#{@output_topic_prefix}-#{@pre_existing_dataset_id}"
 
-      eventually(fn ->
-        results = TestUtils.get_data_messages_from_kafka(topic, @endpoints)
-        last_one = List.last(results)
+      eventually(
+        fn ->
+          results = TestUtils.get_data_messages_from_kafka(topic, @endpoints)
+          last_one = List.last(results)
 
-        assert expected == last_one
-      end, 1000, 40)
+          assert expected == last_one
+        end,
+        1000,
+        40
+      )
     end
   end
 
@@ -166,13 +171,18 @@ defmodule Reaper.FullTest do
       Brook.Event.send(dataset_update(), :reaper, gtfs_dataset)
       Elsa.create_topic(@endpoints, topic)
 
-      eventually(fn ->
-        results = TestUtils.get_data_messages_from_kafka(topic, @endpoints)
+      eventually(
+        fn ->
+          results = TestUtils.get_data_messages_from_kafka(topic, @endpoints)
 
-        assert [%{payload: %{"id" => "1004"}} | _] = results
-      end, 1000, 40)
+          assert [%{payload: %{"id" => "1004"}} | _] = results
+        end,
+        1000,
+        40
+      )
     end
 
+    @tag timeout: 120_000
     test "configures and ingests a json source" do
       dataset_id = "23456-7891"
       topic = "#{@output_topic_prefix}-#{dataset_id}"
@@ -192,11 +202,15 @@ defmodule Reaper.FullTest do
       Brook.Event.send(dataset_update(), :reaper, json_dataset)
       Elsa.create_topic(@endpoints, topic)
 
-      eventually(fn ->
-        results = TestUtils.get_data_messages_from_kafka(topic, @endpoints)
+      eventually(
+        fn ->
+          results = TestUtils.get_data_messages_from_kafka(topic, @endpoints)
 
-        assert [%{payload: %{"vehicle_id" => 51_127}} | _] = results
-      end, 1000, 40)
+          assert [%{payload: %{"vehicle_id" => 51_127}} | _] = results
+        end,
+        1000,
+        40
+      )
     end
 
     @tag timeout: 120_000
@@ -250,27 +264,31 @@ defmodule Reaper.FullTest do
 
       Brook.Event.send(dataset_update(), :reaper, hosted_dataset)
 
-      eventually(fn ->
-        expected = File.read!("test/support/#{@csv_file_name}")
+      eventually(
+        fn ->
+          expected = File.read!("test/support/#{@csv_file_name}")
 
-        case ExAws.S3.get_object(
-               "hosted-dataset-files",
-               "#{hosted_dataset.technical.orgName}/#{hosted_dataset.technical.dataName}.#{
-                 hosted_dataset.technical.sourceFormat
-               }"
-             )
-             |> ExAws.request() do
-          {:ok, resp} ->
-            assert Map.get(resp, :body) == expected
+          case ExAws.S3.get_object(
+                 "hosted-dataset-files",
+                 "#{hosted_dataset.technical.orgName}/#{hosted_dataset.technical.dataName}.#{
+                   hosted_dataset.technical.sourceFormat
+                 }"
+               )
+               |> ExAws.request() do
+            {:ok, resp} ->
+              assert Map.get(resp, :body) == expected
 
-          _other ->
-            Logger.info("File not uploaded yet")
-            flunk("File should have been uploaded")
-        end
+            _other ->
+              Logger.info("File not uploaded yet")
+              flunk("File should have been uploaded")
+          end
 
-        {:ok, _, messages} = Elsa.fetch(@endpoints, "event-stream", partition: 0)
-        assert Enum.any?(messages, fn %Elsa.Message{key: key} -> key == "file:upload" end)
-      end, 1000, 40)
+          {:ok, _, messages} = Elsa.fetch(@endpoints, "event-stream", partition: 0)
+          assert Enum.any?(messages, fn %Elsa.Message{key: key} -> key == "file:upload" end)
+        end,
+        1000,
+        40
+      )
     end
 
     test "saves last_success_time to redis" do
@@ -291,18 +309,22 @@ defmodule Reaper.FullTest do
       Brook.Event.send(dataset_update(), :reaper, gtfs_dataset)
       Elsa.create_topic(@endpoints, "#{@output_topic_prefix}-#{dataset_id}")
 
-      eventually(fn ->
-        {:ok, result} = Redix.command(:redix, ["GET", "reaper:derived:#{dataset_id}"])
-        assert result != nil
+      eventually(
+        fn ->
+          {:ok, result} = Redix.command(:redix, ["GET", "reaper:derived:#{dataset_id}"])
+          assert result != nil
 
-        timestamp =
-          result
-          |> Jason.decode!()
-          |> Map.get("timestamp")
-          |> DateTime.from_iso8601()
+          timestamp =
+            result
+            |> Jason.decode!()
+            |> Map.get("timestamp")
+            |> DateTime.from_iso8601()
 
-        assert {:ok, date_time_from_redis, 0} = timestamp
-      end, 1000, 40)
+          assert {:ok, date_time_from_redis, 0} = timestamp
+        end,
+        1000,
+        40
+      )
     end
   end
 
@@ -353,12 +375,16 @@ defmodule Reaper.FullTest do
         60
       )
 
-      eventually(fn ->
-        data_feed_status =
-          Horde.Registry.lookup({:via, Horde.Registry, {Reaper.Registry, String.to_atom(dataset_id <> "_feed")}})
+      eventually(
+        fn ->
+          data_feed_status =
+            Horde.Registry.lookup({:via, Horde.Registry, {Reaper.Registry, String.to_atom(dataset_id <> "_feed")}})
 
-        assert data_feed_status == :undefined
-      end, 1000, 40)
+          assert data_feed_status == :undefined
+        end,
+        1000,
+        40
+      )
     end
   end
 
@@ -438,10 +464,14 @@ defmodule Reaper.FullTest do
 
     TestUtils.bypass_file(bypass, file_name)
 
-    eventually(fn ->
-      {type, result} = get("http://localhost:#{bypass.port}/#{file_name}")
-      type == :ok and result.status == 200
-    end, 1000, 40)
+    eventually(
+      fn ->
+        {type, result} = get("http://localhost:#{bypass.port}/#{file_name}")
+        type == :ok and result.status == 200
+      end,
+      1000,
+      40
+    )
 
     bypass
   end
