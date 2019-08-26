@@ -209,7 +209,7 @@ defmodule Reaper.FullTest do
           assert [%{payload: %{"vehicle_id" => 51_127}} | _] = results
         end,
         1000,
-        40
+        80
       )
     end
 
