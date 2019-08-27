@@ -15,7 +15,8 @@ defmodule Reaper.Application do
         {HordeConnector, [supervisor: Reaper.Horde.Supervisor, registry: Reaper.Registry]},
         Reaper.ConfigServer,
         redis(),
-        dataset_subscriber()
+        dataset_subscriber(),
+        Plug.Cowboy.child_spec(scheme: :http, plug: Reaper.Router, options: [port: 4001])
       ]
       |> List.flatten()
 
