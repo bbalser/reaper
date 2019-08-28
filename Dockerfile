@@ -17,4 +17,5 @@ RUN apk upgrade && \
     rm -rf /var/cache/**/*
 WORKDIR /app
 COPY --from=builder /app/_build/prod/rel/reaper/ .
+EXPOSE 4001
 CMD ["bin/reaper", "foreground"]
