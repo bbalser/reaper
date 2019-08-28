@@ -54,6 +54,6 @@ defmodule Reaper.Controller.Upload do
     }
 
     {:ok, data} = SmartCity.Data.new(data)
-    data
+    Jason.encode!(data)
   end
 end
