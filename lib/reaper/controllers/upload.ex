@@ -3,13 +3,14 @@ defmodule Reaper.Controller.Upload do
   require Logger
   import Plug.Conn
 
-  alias Reaper.ReaperConfig
   alias Reaper.DataFeed.SchemaFiller
 
   def handle(%{params: %{"dataset_id" => dataset_id}} = conn) do
     with {:ok, body, conn} <- read_body(conn),
          {:ok, dataset} <- SmartCity.Dataset.get(dataset_id),
          {:ok, decoded_body} <- Jason.decode(body) do
+      Logger.info("Message received: #{inspect(decoded_body)}")
+
       messages =
         decoded_body
         |> Map.get("time_points")
@@ -21,6 +22,10 @@ defmodule Reaper.Controller.Upload do
       Elsa.produce(endpoints(), topic, messages, partition: 0)
 
       send_resp(conn, 200, "Dataset_id: #{dataset_id}")
+    else
+      e ->
+        Logger.error("Unable to process request: conn(#{inspect(conn)}), error reason: #{inspect(e)}")
+        send_resp(conn, 500, "Internal Server Error")
     end
   rescue
     e ->
