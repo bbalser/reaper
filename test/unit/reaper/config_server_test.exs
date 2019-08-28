@@ -239,23 +239,6 @@ defmodule Reaper.ConfigServerTest do
              end) =~ "Inviable configuration"
     end
 
-    test "the config server raises an error if the a non-remote dataset has a cadence of never" do
-      allow(Redix.command!(:redix, ["KEYS", @name_space <> "*"]), return: [])
-      ConfigServer.start_link([])
-
-      dataset_id = "12345-6789"
-      reaper_config = FixtureHelper.new_reaper_config(%{dataset_id: dataset_id, sourceType: "ingest", cadence: "never"})
-
-      allow(Reaper.Persistence.get_last_fetched_timestamp(any()),
-        return: DateTime.utc_now(),
-        meck_options: [:passthrough]
-      )
-
-      assert capture_log(fn ->
-               ConfigServer.process_reaper_config(reaper_config)
-             end) =~ "Inviable configuration"
-    end
-
     test "the config server raises an error if a dataset has a cadence of 0" do
       allow(Redix.command!(:redix, ["KEYS", @name_space <> "*"]), return: [])
       ConfigServer.start_link([])

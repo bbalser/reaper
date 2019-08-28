@@ -45,7 +45,7 @@ defmodule Reaper.ConfigServer do
   """
   @spec process_reaper_config(ReaperConfig.t()) ::
           {:ok, String.t()} | DynamicSupervisor.on_start_child() | nil
-  def process_reaper_config(%ReaperConfig{cadence: "never", sourceType: "remote"}), do: nil
+  def process_reaper_config(%ReaperConfig{cadence: "never"}), do: nil
 
   def process_reaper_config(%ReaperConfig{cadence: "once", sourceType: "ingest"} = reaper_config) do
     create_feed_supervisor(reaper_config)
