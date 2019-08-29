@@ -11,10 +11,13 @@ defmodule Reaper.Controller.Upload do
          {:ok, decoded_body} <- Jason.decode(body) do
       Logger.info("Message received: #{inspect(decoded_body)}")
 
+      id = Map.get(decoded_body, "mobile_id")
+
       messages =
         decoded_body
         |> Map.get("time_points")
         |> List.wrap()
+        |> Enum.map(&add_mobile_id(&1, id))
         |> Enum.map(&SchemaFiller.fill(dataset.technical.schema, &1))
         |> Enum.map(&to_data_message(dataset, &1))
 
@@ -31,6 +34,10 @@ defmodule Reaper.Controller.Upload do
     e ->
       Logger.error("Unable to process request: conn(#{inspect(conn)}), error reason: #{inspect(e)}")
       send_resp(conn, 500, "Internal Server Error")
+  end
+
+  defp add_mobile_id(message, id) do
+    Map.merge(message, %{"mobile_id" => id})
   end
 
   defp topic(dataset) do
